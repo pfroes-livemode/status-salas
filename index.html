@@ -14,58 +14,55 @@
 </head>
 <body class="flex items-start justify-center min-h-screen">
 
-<div class="bg-white rounded-2xl shadow-lg border border-gray-100 w-full max-w-2xl overflow-hidden">
+<div class="bg-white rounded-2xl shadow-lg border border-gray-100 w-full overflow-hidden" style="max-width: 480px;">
 
     <!-- Header -->
-    <div class="px-8 py-6 border-b border-gray-100 flex justify-between items-center">
+    <div class="px-6 py-4 flex justify-between items-center" style="background:#1e3a5f;">
         <div>
-            <h1 class="text-xl font-bold text-gray-900 tracking-tight">Sala Triatlo</h1>
-            <div class="flex items-center gap-4 mt-1 text-sm text-gray-400">
+            <h1 class="text-lg font-bold text-white tracking-tight">Sala Triatlo</h1>
+            <div class="flex items-center gap-3 mt-0.5 text-xs text-blue-200">
                 <span class="flex items-center gap-1">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                     5º Andar
                 </span>
                 <span class="flex items-center gap-1">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     4 pessoas
                 </span>
             </div>
         </div>
-        <div id="status-badge" class="px-4 py-1.5 rounded-full font-semibold text-xs tracking-wider bg-gray-100 text-gray-400 uppercase">
-            —
+        <div id="status-badge" class="px-3 py-1 rounded-full font-semibold text-xs tracking-wider uppercase" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);">—</div>
+    </div>
+
+    <!-- Dois blocos lado a lado -->
+    <div class="flex" style="min-height: 520px;">
+
+        <!-- BLOCO ESQUERDO — Status -->
+        <div class="flex flex-col justify-between border-r border-gray-100 p-5" style="width: 180px; flex-shrink: 0;">
+            <div class="flex flex-col items-center justify-center flex-1 text-center gap-3">
+                <h2 id="status-main-text" class="text-2xl font-extrabold text-gray-300 tracking-tight leading-tight">Conectando...</h2>
+                <p id="status-sub-text" class="text-sm text-gray-400 font-medium"></p>
+            </div>
+            <div class="mt-6 text-xs text-gray-400 flex items-center gap-2">
+                <span class="pulse-dot inline-block w-2 h-2 rounded-full bg-gray-300" id="status-dot"></span>
+                <span id="last-update">Conectando...</span>
+            </div>
         </div>
-    </div>
 
-    <!-- Status -->
-    <div class="px-8 py-8 text-center border-b border-gray-100">
-        <h2 id="status-main-text" class="text-4xl font-extrabold text-gray-300 tracking-tight">Conectando...</h2>
-        <p id="status-sub-text" class="text-base text-gray-400 mt-2 font-medium min-h-6"></p>
-    </div>
+        <!-- BLOCO DIREITO — Agenda -->
+        <div class="flex-1 p-6 flex flex-col">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Agenda do Dia</h3>
 
-    <!-- Agenda -->
-    <div class="px-8 py-6">
-        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Agenda do Dia</h3>
-
-        <!-- Timeline container — altura fixa, sem scroll -->
-        <div class="relative" id="timeline-container" style="height: 720px;">
-            <!-- Grid lines injetadas via JS -->
-            <div id="events-container" class="absolute top-0 bottom-0 left-14 right-0">
-                <!-- Linha hora atual -->
-                <div id="current-time-indicator" style="display:none; position:absolute; left:0; right:0; z-index:20; align-items:center;">
-                    <div style="width:9px;height:9px;border-radius:50%;background:#3b82f6;flex-shrink:0;"></div>
-                    <div style="flex:1;height:2px;background:#3b82f6;opacity:.8;"></div>
+            <!-- Timeline -->
+            <div class="relative flex-1" id="timeline-container">
+                <div id="events-container" class="absolute top-0 bottom-0 left-12 right-0">
+                    <div id="current-time-indicator" style="display:none; position:absolute; left:0; right:0; z-index:20; align-items:center;">
+                        <div style="width:8px;height:8px;border-radius:50%;background:#3b82f6;flex-shrink:0;"></div>
+                        <div style="flex:1;height:2px;background:#3b82f6;opacity:.8;"></div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="px-8 py-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-400">
-        <span class="flex items-center gap-2">
-            <span class="pulse-dot inline-block w-2 h-2 rounded-full bg-gray-300" id="status-dot"></span>
-            <span id="last-update">Conectando...</span>
-        </span>
-        <span class="text-[10px] bg-gray-50 border border-gray-100 px-2 py-1 rounded">Atualiza a cada 30s</span>
     </div>
 </div>
 
@@ -73,33 +70,35 @@
 const WEBHOOK_URL = 'https://n8nops.livemode.com/webhook/status-sala-triatlo';
 
 const ui = {
-    badge:     document.getElementById('status-badge'),
-    mainText:  document.getElementById('status-main-text'),
-    subText:   document.getElementById('status-sub-text'),
-    timeline:  document.getElementById('timeline-container'),
-    events:    document.getElementById('events-container'),
-    curTime:   document.getElementById('current-time-indicator'),
-    lastUpdate:document.getElementById('last-update'),
-    dot:       document.getElementById('status-dot'),
+    badge:      document.getElementById('status-badge'),
+    mainText:   document.getElementById('status-main-text'),
+    subText:    document.getElementById('status-sub-text'),
+    timeline:   document.getElementById('timeline-container'),
+    events:     document.getElementById('events-container'),
+    curTime:    document.getElementById('current-time-indicator'),
+    lastUpdate: document.getElementById('last-update'),
+    dot:        document.getElementById('status-dot'),
 };
 
-// Horário comercial: 08h–20h = 12h = 720min
 const HOUR_START = 8;
 const HOUR_END   = 20;
-const HOURS      = HOUR_END - HOUR_START; // 12
+const HOURS      = HOUR_END - HOUR_START;
 
 // Grid de horas
-for (let h = HOUR_START; h <= HOUR_END; h++) {
-    const pct = ((h - HOUR_START) / HOURS) * 100;
-    const row = document.createElement('div');
-    row.className = 'absolute w-full flex items-start pointer-events-none';
-    row.style.top = `${pct}%`;
-    row.innerHTML = `
-        <div class="text-right pr-3 text-[10px] text-gray-300 font-mono w-14 -mt-2 select-none">${String(h).padStart(2,'0')}:00</div>
-        <div class="flex-1 border-t border-gray-100"></div>
-    `;
-    ui.timeline.insertBefore(row, ui.events);
+function buildGrid() {
+    for (let h = HOUR_START; h <= HOUR_END; h++) {
+        const pct = ((h - HOUR_START) / HOURS) * 100;
+        const row = document.createElement('div');
+        row.className = 'absolute w-full flex items-start pointer-events-none';
+        row.style.top = `${pct}%`;
+        row.innerHTML = `
+            <div class="text-right pr-2 text-[9px] text-gray-300 font-mono w-12 -mt-2 select-none">${String(h).padStart(2,'0')}:00</div>
+            <div class="flex-1 border-t border-gray-100"></div>
+        `;
+        ui.timeline.insertBefore(row, ui.events);
+    }
 }
+buildGrid();
 
 function normalizeTs(ts) {
     if (!ts) return 0;
@@ -119,25 +118,27 @@ function tsToday(h, m = 0) {
 }
 
 const STATUS_CONFIG = {
-    livre:          { label:'SEM RESERVA',  bg:'bg-emerald-50 text-emerald-700 border border-emerald-200', main:'Sem Reserva e Sala Vazia',   color:'text-emerald-600', dot:'bg-emerald-400' },
-    ocupado:        { label:'RESERVADO',    bg:'bg-orange-50 text-orange-700 border border-orange-200',   main:'',                           color:'text-orange-600',  dot:'bg-orange-400'  },
-    reservado_vazio:{ label:'RESERVADO',    bg:'bg-blue-50 text-blue-700 border border-blue-200',         main:'Reservado e Sala Vazia',     color:'text-blue-600',    dot:'bg-blue-400'    },
-    uso_sem_reserva:{ label:'SEM RESERVA',  bg:'bg-rose-50 text-rose-700 border border-rose-200',         main:'Sem Reserva e Ocupado',      color:'text-rose-600',    dot:'bg-rose-400'    },
+    livre:          { label:'SEM RESERVA', main:'Sem Reserva\ne Sala Vazia',   color:'#16a34a', dot:'bg-emerald-400' },
+    ocupado:        { label:'RESERVADO',   main:'',                            color:'#ea580c', dot:'bg-orange-400'  },
+    reservado_vazio:{ label:'RESERVADO',   main:'Reservado\ne Sala Vazia',     color:'#2563eb', dot:'bg-blue-400'    },
+    uso_sem_reserva:{ label:'SEM RESERVA', main:'Sem Reserva\ne Ocupado',      color:'#dc2626', dot:'bg-rose-400'    },
 };
 
 function updateUI(data) {
-    const cfg = STATUS_CONFIG[data.status] || { label:'—', bg:'bg-gray-100 text-gray-400', main:'Indisponível', color:'text-gray-400', dot:'bg-gray-300' };
+    const cfg = STATUS_CONFIG[data.status] || { label:'—', main:'Indisponível', color:'#9ca3af', dot:'bg-gray-300' };
 
+    // Badge sempre branco semitransparente no header azul
     ui.badge.textContent = cfg.label;
-    ui.badge.className = `px-4 py-1.5 rounded-full font-semibold text-xs tracking-wider uppercase ${cfg.bg}`;
+    ui.badge.style.cssText = 'padding:4px 12px;border-radius:9999px;font-weight:600;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);';
+
     ui.dot.className = `pulse-dot inline-block w-2 h-2 rounded-full ${cfg.dot}`;
 
     if (data.status === 'ocupado') {
-        ui.mainText.textContent = `Reservado e Ocupado até ${data.fim ? formatTime(data.fim) : '--:--'}`;
+        ui.mainText.innerHTML = `Reservado e Ocupado<br><span>até ${data.fim ? formatTime(data.fim) : '--:--'}</span>`;
     } else {
-        ui.mainText.textContent = cfg.main;
+        ui.mainText.innerHTML = cfg.main.replace('\n', '<br>');
     }
-    ui.mainText.className = `text-4xl font-extrabold tracking-tight ${cfg.color}`;
+    ui.mainText.style.cssText = `font-size:1.4rem;font-weight:800;line-height:1.3;color:${cfg.color};`;
     ui.subText.textContent = (data.status === 'ocupado' || data.status === 'reservado_vazio') && data.organizador
         ? `por ${data.organizador}` : '';
 
@@ -148,8 +149,16 @@ function updateUI(data) {
     const endMs   = tsToday(HOUR_END);
     const totalMs = endMs - startMs;
 
-    if (Array.isArray(data.agenda)) {
-        data.agenda.forEach((item, idx) => {
+        if (Array.isArray(data.agenda)) {
+            const BLOCK_COLORS = [
+                { bg:'#fff1f2', border:'#fda4af', borderLeft:'#f43f5e', text:'#9f1239', sub:'#fb7185' },
+                { bg:'#fff7ed', border:'#fed7aa', borderLeft:'#f97316', text:'#9a3412', sub:'#fb923c' },
+                { bg:'#eff6ff', border:'#bfdbfe', borderLeft:'#3b82f6', text:'#1e40af', sub:'#60a5fa' },
+                { bg:'#f0fdf4', border:'#bbf7d0', borderLeft:'#22c55e', text:'#166534', sub:'#4ade80' },
+                { bg:'#faf5ff', border:'#e9d5ff', borderLeft:'#a855f7', text:'#6b21a8', sub:'#c084fc' },
+            ];
+
+            data.agenda.forEach((item, idx) => {
             const eStart = Math.max(normalizeTs(item.inicio_ts), startMs);
             const eEnd   = Math.min(normalizeTs(item.fim_ts),   endMs);
             if (eEnd <= startMs || eStart >= endMs) return;
@@ -158,21 +167,30 @@ function updateUI(data) {
             const hPct   = ((eEnd - eStart)   / totalMs) * 100;
 
             const el = document.createElement('div');
-            el.className = 'tl-event absolute left-1 right-2 rounded-lg overflow-hidden';
-            // Margem interna para separar blocos visualmente
-            el.style.top    = `calc(${topPct}% + 2px)`;
-            el.style.height = `calc(${Math.max(hPct, 1.5)}% - 4px)`;
-            el.style.background = '#fff1f2';
-            el.style.border = '1.5px solid #fda4af';
-            el.style.borderLeft = '4px solid #f43f5e';
-            el.style.padding = '6px 10px';
-            el.style.zIndex = idx + 1;
+            el.className = 'tl-event absolute left-1 right-1 rounded-lg overflow-hidden';
+            el.style.top        = `calc(${topPct}% + 2px)`;
+            el.style.height     = `calc(${Math.max(hPct, 2)}% - 4px)`;
+            const c = BLOCK_COLORS[idx % BLOCK_COLORS.length];
+            el.style.background     = c.bg;
+            el.style.border         = `1.5px solid ${c.border}`;
+            el.style.borderLeft     = `4px solid ${c.borderLeft}`;
+            el.style.padding        = '4px 8px';
+            el.style.display        = 'flex';
+            el.style.alignItems     = 'center';
+            el.style.justifyContent = 'space-between';
+            el.style.gap            = '6px';
+            el.style.zIndex         = idx + 1;
 
             el.innerHTML = `
-                <div style="font-size:11px;font-weight:700;color:#9f1239;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                <div style="font-size:11px;font-weight:700;color:${c.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">
                     ${item.organizador || 'Ocupado'}
                 </div>
-                <div style="font-size:10px;color:#fb7185;font-weight:500;margin-top:2px;">
+                <div style="font-size:10px;color:${c.sub};font-weight:600;white-space:nowrap;flex-shrink:0;">
+                    ${item.inicio} – ${item.fim}
+                </div>
+            `;
+                </div>
+                <div style="font-size:10px;color:#fb7185;font-weight:600;white-space:nowrap;flex-shrink:0;">
                     ${item.inicio} – ${item.fim}
                 </div>
             `;
@@ -184,7 +202,7 @@ function updateUI(data) {
 }
 
 function updateTimeIndicator() {
-    const now    = Date.now();
+    const now     = Date.now();
     const startMs = tsToday(HOUR_START);
     const endMs   = tsToday(HOUR_END);
     if (now >= startMs && now <= endMs) {
@@ -204,10 +222,9 @@ async function fetchData() {
         updateUI(data);
         const now = new Date();
         ui.lastUpdate.textContent = `Atualizado às ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
-        ui.dot.style.opacity = '1';
     } catch(err) {
         const now = new Date();
-        ui.lastUpdate.textContent = `Falha às ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — tentando novamente...`;
+        ui.lastUpdate.textContent = `Falha às ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} — tentando...`;
         ui.dot.className = 'inline-block w-2 h-2 rounded-full bg-red-400';
     }
 }
