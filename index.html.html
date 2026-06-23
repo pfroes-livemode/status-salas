@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status Sala Triatlo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: transparent; margin: 0; padding: 1rem; }
+        .custom-scrollbar::-webkit-scrollbar { display: block; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar { -ms-overflow-style: auto; scrollbar-width: thin; }
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+<div class="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-2xl overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="p-6 border-b border-gray-100 flex justify-between items-start">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Sala Triatlo</h1>
+            <div class="flex items-center gap-4 mt-2 text-sm text-gray-500 font-medium">
+                <span class="flex items-center gap-1">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    5º Andar
+                </span>
+                <span class="flex items-center gap-1">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    Capacidade: 4
+                </span>
+            </div>
+        </div>
+        <div id="status-badge" class="px-3 py-1 rounded-full font-bold text-xs tracking-wider bg-gray-100 text-gray-500 uppercase shadow-sm">
+            ...
+        </div>
+    </div>
+
+    <!-- Status Body -->
+    <div class="p-6 md:p-8 flex-grow flex flex-col bg-gray-50/50">
+        <div class="text-center mb-8">
+            <h2 id="status-main-text" class="text-3xl md:text-4xl font-extrabold text-gray-400 tracking-tight transition-colors duration-300">Conectando...</h2>
+            <p id="status-sub-text" class="text-base md:text-lg text-gray-500 mt-2 font-medium h-6 transition-opacity duration-300"></p>
+        </div>
+
+        <!-- Timeline -->
+        <div class="w-full">
+            <div class="flex justify-between items-end mb-3">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">Agenda do Dia</h3>
+            </div>
+            
+            <div class="relative bg-white border border-gray-200 rounded-xl overflow-y-auto shadow-inner custom-scrollbar" style="max-height: 350px;">
+                <div class="relative mt-4 mb-4" style="height: 600px;" id="timeline-container">
+                    <div id="events-container" class="absolute top-0 bottom-0 left-16 right-4">
+                        <div id="current-time-indicator" style="display:none; position:absolute; left:0; right:0; z-index:20; align-items:center; margin-left:-5px;">
+                            <div style="width:10px; height:10px; border-radius:50%; background-color:#3b82f6;"></div>
+                            <div style="flex:1; height:2px; background-color:#3b82f6;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-white px-6 py-4 flex justify-between items-center text-xs text-gray-400 font-medium border-t border-gray-100">
+        <span class="flex items-center gap-2">
+            <span class="pulse-dot inline-block w-2 h-2 rounded-full bg-emerald-400" id="status-dot"></span>
+            <span id="last-update">Conectando...</span>
+        </span>
+        <span class="bg-gray-100 px-2 py-1 rounded text-[10px] tracking-wide">Atualiza a cada 30s</span>
+    </div>
+</div>
+
+<script>
+    const WEBHOOK_URL = 'https://n8nops.livemode.com/webhook/status-sala-triatlo';
+    
+    const ui = {
+        badge: document.getElementById('status-badge'),
+        mainText: document.getElementById('status-main-text'),
+        subText: document.getElementById('status-sub-text'),
+        timeline: document.getElementById('timeline-container'),
+        eventsContainer: document.getElementById('events-container'),
+        currentTime: document.getElementById('current-time-indicator'),
+        lastUpdate: document.getElementById('last-update'),
+        statusDot: document.getElementById('status-dot')
+    };
+
+    // Monta grid de horários
+    for (let i = 8; i <= 20; i++) {
+        const el = document.createElement('div');
+        el.className = 'absolute w-full flex pointer-events-none';
+        el.style.top = `${((i - 8) / 12) * 100}%`;
+        el.innerHTML = `
+            <div class="w-16 text-right pr-3 -mt-2.5 text-[10px] sm:text-xs text-gray-400 font-semibold font-mono">
+                ${i.toString().padStart(2, '0')}:00
+            </div>
+            <div class="flex-1 border-t border-gray-100"></div>
+        `;
+        ui.timeline.insertBefore(el, ui.eventsContainer);
+    }
+
+    function normalizeTs(ts) {
+        if (!ts) return 0;
+        return ts > 1e11 ? ts : ts * 1000;
+    }
+
+    function formatTime(value) {
+        try {
+            // Aceita tanto string ISO quanto HH:mm direto
+            if (typeof value === 'string' && value.match(/^\d{2}:\d{2}$/)) return value;
+            const date = new Date(value);
+            return date.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+        } catch(e) { return '--:--'; }
+    }
+
+    function updateUI(data) {
+        ui.subText.textContent = '';
+
+        switch(data.status) {
+            case 'livre':
+                ui.badge.textContent = 'LIVRE';
+                ui.badge.className = 'px-3 py-1 rounded-full font-bold text-xs tracking-wider bg-emerald-100 text-emerald-700 uppercase shadow-sm border border-emerald-200';
+                ui.mainText.textContent = 'Disponível';
+                ui.mainText.className = 'text-3xl md:text-4xl font-extrabold text-emerald-600 tracking-tight transition-colors duration-300';
+                ui.statusDot.className = 'pulse-dot inline-block w-2 h-2 rounded-full bg-emerald-400';
+                break;
+            case 'ocupado':
+                ui.badge.textContent = 'OCUPADO';
+                ui.badge.className = 'px-3 py-1 rounded-full font-bold text-xs tracking-wider bg-rose-100 text-rose-700 uppercase shadow-sm border border-rose-200';
+                ui.mainText.textContent = `Em uso até ${data.fim ? formatTime(data.fim) : '--:--'}`;
+                ui.mainText.className = 'text-3xl md:text-4xl font-extrabold text-rose-600 tracking-tight transition-colors duration-300';
+                ui.statusDot.className = 'pulse-dot inline-block w-2 h-2 rounded-full bg-rose-400';
+                if (data.organizador) ui.subText.textContent = `por ${data.organizador}`;
+                break;
+            case 'reservado_vazio':
+                ui.badge.textContent = 'AUSENTE';
+                ui.badge.className = 'px-3 py-1 rounded-full font-bold text-xs tracking-wider bg-amber-100 text-amber-700 uppercase shadow-sm border border-amber-200';
+                ui.mainText.textContent = 'Reservado — sala vazia';
+                ui.mainText.className = 'text-3xl md:text-4xl font-extrabold text-amber-600 tracking-tight transition-colors duration-300';
+                ui.statusDot.className = 'pulse-dot inline-block w-2 h-2 rounded-full bg-amber-400';
+                if (data.organizador) ui.subText.textContent = `por ${data.organizador}`;
+                break;
+            case 'uso_sem_reserva':
+                ui.badge.textContent = 'SEM RESERVA';
+                ui.badge.className = 'px-3 py-1 rounded-full font-bold text-xs tracking-wider bg-blue-100 text-blue-700 uppercase shadow-sm border border-blue-200';
+                ui.mainText.textContent = 'Em uso sem reserva';
+                ui.mainText.className = 'text-3xl md:text-4xl font-extrabold text-blue-600 tracking-tight transition-colors duration-300';
+                ui.statusDot.className = 'pulse-dot inline-block w-2 h-2 rounded-full bg-blue-400';
+                break;
+            default:
+                ui.badge.textContent = '—';
+                ui.badge.className = 'px-3 py-1 rounded-full font-bold text-xs tracking-wider bg-gray-100 text-gray-500 uppercase shadow-sm';
+                ui.mainText.textContent = 'Status indisponível';
+                ui.mainText.className = 'text-3xl md:text-4xl font-extrabold text-gray-400 tracking-tight';
+                ui.statusDot.className = 'inline-block w-2 h-2 rounded-full bg-gray-300';
+        }
+
+        // Timeline — remove eventos antigos
+        document.querySelectorAll('.timeline-event').forEach(el => el.remove());
+
+        const now = new Date();
+        const startOfTimeline = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0).getTime();
+        const endOfTimeline   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 20, 0, 0).getTime();
+        const totalMs = endOfTimeline - startOfTimeline;
+
+        if (Array.isArray(data.agenda)) {
+            data.agenda.forEach(item => {
+                const eStart = Math.max(normalizeTs(item.inicio_ts), startOfTimeline);
+                const eEnd   = Math.min(normalizeTs(item.fim_ts),   endOfTimeline);
+                if (eEnd <= startOfTimeline || eStart >= endOfTimeline) return;
+
+                const topPct    = ((eStart - startOfTimeline) / totalMs) * 100;
+                const heightPct = ((eEnd - eStart) / totalMs) * 100;
+
+                const el = document.createElement('div');
+                el.className = 'timeline-event absolute left-1 right-1 bg-rose-50 border-l-4 border-rose-500 rounded-r p-2 overflow-hidden shadow-sm hover:shadow transition-shadow';
+                el.style.top    = `${topPct}%`;
+                el.style.height = `${Math.max(heightPct, 2)}%`;
+                el.title = `${item.organizador || 'Ocupado'} (${item.inicio} - ${item.fim})`;
+                el.innerHTML = `
+                    <div class="text-xs font-bold text-rose-900 truncate leading-tight">${item.organizador || 'Ocupado'}</div>
+                    <div class="text-[10px] text-rose-600 font-medium truncate opacity-80 mt-0.5">${item.inicio} – ${item.fim}</div>
+                `;
+                ui.eventsContainer.appendChild(el);
+            });
+        }
+
+        updateTimeIndicator();
+    }
+
+    function updateTimeIndicator() {
+        const now = new Date();
+        const startOfTimeline = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0).getTime();
+        const endOfTimeline   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 20, 0, 0).getTime();
+        const totalMs = endOfTimeline - startOfTimeline;
+        const nowMs   = now.getTime();
+
+        if (nowMs >= startOfTimeline && nowMs <= endOfTimeline) {
+            const pct = ((nowMs - startOfTimeline) / totalMs) * 100;
+            ui.currentTime.style.display = 'flex';
+            ui.currentTime.style.top = `${pct}%`;
+        } else {
+            ui.currentTime.style.display = 'none';
+        }
+    }
+
+    async function fetchData() {
+        try {
+            const res = await fetch(WEBHOOK_URL);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            updateUI(data);
+            const now = new Date();
+            ui.lastUpdate.textContent = `Atualizado às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+        } catch (err) {
+            console.error('Erro:', err);
+            const now = new Date();
+            ui.lastUpdate.textContent = `Falha às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} — tentando novamente...`;
+            ui.statusDot.className = 'inline-block w-2 h-2 rounded-full bg-red-400';
+        }
+    }
+
+    fetchData();
+    setInterval(fetchData, 30000);
+    setInterval(updateTimeIndicator, 60000);
+</script>
+</body>
+</html>
