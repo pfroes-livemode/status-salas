@@ -21,6 +21,14 @@
         .btn-secondary:hover { background:#f8fafc; }
         .msg-success { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px; color:#166534; font-size:13px; font-weight:500; text-align:center; }
         .msg-error { background:#fff1f2; border:1px solid #fda4af; border-radius:8px; padding:12px; color:#9f1239; font-size:13px; font-weight:500; text-align:center; }
+        .autocomplete-wrapper { position:relative; }
+        .autocomplete-list { position:absolute; top:100%; left:0; right:0; background:white; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,0.12); z-index:200; max-height:180px; overflow-y:auto; margin-top:4px; }
+        .autocomplete-item { padding:9px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid #f1f5f9; display:flex; flex-direction:column; gap:2px; }
+        .autocomplete-item:last-child { border-bottom:none; }
+        .autocomplete-item:hover, .autocomplete-item.selected { background:#f0f4ff; }
+        .autocomplete-item .item-nome { font-weight:600; color:#1e3a5f; }
+        .autocomplete-item .item-email { font-size:11px; color:#94a3b8; }
+        .email-display { background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; font-size:13px; color:#475569; min-height:36px; display:flex; align-items:center; }
     </style>
 </head>
 <body class="flex items-start justify-center min-h-screen">
@@ -89,9 +97,15 @@
         </div>
 
         <div style="display:flex;flex-direction:column;gap:14px;">
-            <div>
+            <div class="autocomplete-wrapper">
                 <label>Seu nome</label>
-                <input type="text" id="f-organizador" placeholder="Ex: Paulo Froes">
+                <input type="text" id="f-organizador" placeholder="Digite seu nome..." autocomplete="off" oninput="buscarUsuarios(this.value)">
+                <div id="autocomplete-list" class="autocomplete-list" style="display:none;"></div>
+            </div>
+            <div>
+                <label>E-mail</label>
+                <div class="email-display" id="f-email-display">—</div>
+                <input type="hidden" id="f-email">
             </div>
             <div>
                 <label>Título da reunião</label>
@@ -119,6 +133,56 @@
 <script>
 const WEBHOOK_STATUS  = 'https://n8nops.livemode.com/webhook/status-sala-triatlo';
 const WEBHOOK_RESERVA = 'https://n8nops.livemode.com/webhook/reserva-sala-triatlo';
+const WEBHOOK_USUARIOS = 'https://n8nops.livemode.com/webhook/buscar-usuarios-slack';
+
+let autocompleteTimeout = null;
+let usuarioSelecionado = null;
+
+async function buscarUsuarios(query) {
+    const list = document.getElementById('autocomplete-list');
+    clearTimeout(autocompleteTimeout);
+
+    // Limpa seleção ao digitar
+    usuarioSelecionado = null;
+    document.getElementById('f-email').value = '';
+    document.getElementById('f-email-display').textContent = '—';
+
+    if (query.length < 2) { list.style.display = 'none'; return; }
+
+    autocompleteTimeout = setTimeout(async () => {
+        try {
+            const res = await fetch(`${WEBHOOK_USUARIOS}?q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+            const usuarios = data.usuarios || [];
+            if (!usuarios.length) { list.style.display = 'none'; return; }
+
+            list.innerHTML = usuarios.map((u, i) => `
+                <div class="autocomplete-item" data-nome="${u.nome}" data-email="${u.email}" onclick="selecionarUsuario('${u.nome}', '${u.email}')">
+                    <span class="item-nome">${u.nome}</span>
+                    <span class="item-email">${u.email}</span>
+                </div>
+            `).join('');
+            list.style.display = 'block';
+        } catch(e) {
+            list.style.display = 'none';
+        }
+    }, 300);
+}
+
+function selecionarUsuario(nome, email) {
+    usuarioSelecionado = { nome, email };
+    document.getElementById('f-organizador').value = nome;
+    document.getElementById('f-email').value = email;
+    document.getElementById('f-email-display').textContent = email;
+    document.getElementById('autocomplete-list').style.display = 'none';
+}
+
+// Fecha autocomplete ao clicar fora
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.autocomplete-wrapper')) {
+        document.getElementById('autocomplete-list').style.display = 'none';
+    }
+});
 
 const ui = {
     badge:      document.getElementById('status-badge'),
@@ -239,6 +303,11 @@ function abrirModal() {
     document.getElementById('modal').style.display='flex';
     document.getElementById('modal-msg').style.display='none';
     document.getElementById('modal-msg').textContent='';
+    document.getElementById('f-organizador').value='';
+    document.getElementById('f-email').value='';
+    document.getElementById('f-email-display').textContent='—';
+    document.getElementById('autocomplete-list').style.display='none';
+    usuarioSelecionado = null;
 }
 
 function fecharModal() {
@@ -247,13 +316,17 @@ function fecharModal() {
 
 async function enviarReserva() {
     const organizador = document.getElementById('f-organizador').value.trim();
+    const email       = document.getElementById('f-email').value.trim();
     const titulo      = document.getElementById('f-titulo').value.trim();
     const inicio      = document.getElementById('f-inicio').value;
     const fim         = document.getElementById('f-fim').value;
     const msg         = document.getElementById('modal-msg');
     const btn         = document.getElementById('btn-reservar');
 
-    if (!organizador || !titulo || !inicio || !fim) {
+    if (!organizador || !email) {
+        msg.className='msg-error'; msg.textContent='Selecione seu nome na lista de sugestões.'; msg.style.display='block'; return;
+    }
+    if (!titulo || !inicio || !fim) {
         msg.className='msg-error'; msg.textContent='Preencha todos os campos.'; msg.style.display='block'; return;
     }
     if (inicio >= fim) {
@@ -262,7 +335,6 @@ async function enviarReserva() {
 
     btn.textContent='Enviando...'; btn.disabled=true;
 
-    // Monta datetime no fuso de Brasília
     const hoje = new Date().toLocaleDateString('en-CA');
     const inicioISO = `${hoje}T${inicio}:00-03:00`;
     const fimISO    = `${hoje}T${fim}:00-03:00`;
@@ -271,7 +343,7 @@ async function enviarReserva() {
         const res = await fetch(WEBHOOK_RESERVA, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ titulo, organizador, inicio: inicioISO, fim: fimISO })
+            body: JSON.stringify({ titulo, organizador, email, inicio: inicioISO, fim: fimISO })
         });
         const data = await res.json();
         
