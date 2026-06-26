@@ -338,22 +338,23 @@ function initAuth() {
   );
 }
 
-async function onGoogleToken(resp) {
+function onGoogleToken(resp) {
   try {
-    const r = await fetch(SSO_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ token: resp.credential })
-    });
-    const d = await r.json();
-    if (d.success) {
-      const payload = JSON.parse(atob(resp.credential.split('.')[1]));
-      const user = { name: payload.name, email: payload.email, picture: payload.picture, ts: Date.now() };
-      localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      loginSuccess(user);
-    } else {
+    // Decodifica o JWT localmente — sem roundtrip ao n8n
+    const payload = JSON.parse(atob(resp.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const email = payload.email || '';
+    const hd    = payload.hd   || '';          // hosted domain do Google Workspace
+    const domainOk = email.endsWith('@livemode.com') || hd === 'livemode.com';
+    if (!domainOk) {
       alert('Acesso restrito a contas @livemode.com');
+      return;
     }
-  } catch(e) { alert('Erro ao autenticar. Tente novamente.'); }
+    const user = { name: payload.name, email: payload.email, picture: payload.picture, ts: Date.now() };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+    loginSuccess(user);
+  } catch(e) {
+    alert('Erro ao autenticar. Tente novamente.');
+  }
 }
 
 function loginSuccess(user) {
