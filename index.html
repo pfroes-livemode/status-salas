@@ -341,7 +341,9 @@ function initAuth() {
 function onGoogleToken(resp) {
   try {
     // Decodifica o JWT localmente — sem roundtrip ao n8n
-    const payload = JSON.parse(atob(resp.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    const b64 = resp.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const padded = b64 + '=='.slice(0, (4 - b64.length % 4) % 4);
+    const payload = JSON.parse(atob(padded));
     const email = payload.email || '';
     const hd    = payload.hd   || '';          // hosted domain do Google Workspace
     const domainOk = email.endsWith('@livemode.com') || hd === 'livemode.com';
@@ -353,6 +355,7 @@ function onGoogleToken(resp) {
     localStorage.setItem(SESSION_KEY, JSON.stringify(user));
     loginSuccess(user);
   } catch(e) {
+    console.error('Auth error:', e);
     alert('Erro ao autenticar. Tente novamente.');
   }
 }
