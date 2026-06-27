@@ -417,13 +417,25 @@ function mesclarEAtualizar() {
   todasSalas.forEach(id => {
     const cal = cacheCalendar.salas?.[id] || {};
     const sen = cacheSensores.salas?.[id] || {};
+    // Agenda: garante que todos os itens têm inicio_ts válido
+    const agendaBruta = Array.isArray(cal.agenda) ? cal.agenda : [];
+    const agenda = agendaBruta.filter(ev => ev && (ev.inicio_ts || ev.inicio));
+    // Normaliza inicio_ts/fim_ts se vierem como strings de hora (HH:MM)
+    const agendaNorm = agenda.map(ev => {
+      if (!ev.inicio_ts && ev.inicio) {
+        // Reconstrói timestamp a partir de hora HH:MM de hoje
+        const hoje = new Date().toLocaleDateString('en-CA');
+        ev.inicio_ts = new Date(hoje + 'T' + ev.inicio + ':00-03:00').getTime();
+        ev.fim_ts    = new Date(hoje + 'T' + ev.fim    + ':00-03:00').getTime();
+      }
+      return ev;
+    });
     salas[id] = {
       status:     mesclarStatus(cal.status, sen),
       organizer:  cal.organizador || null,
-      eventTitle: null,
       endTime:    cal.fim ? formatarHora(cal.fim) : null,
       hasSensor:  sen.hasSensor ?? false,
-      agenda:     cal.agenda || [],
+      agenda:     agendaNorm,
       temReserva: cal.temReserva ?? false,
     };
   });
@@ -598,7 +610,7 @@ function renderRoomCard(sala, d, status, hasSensor) {
     </div>
     <div class="card-body" style="padding-bottom:8px">
       ${organizadorAtual}${endTime}
-      ${!organizadorAtual && !agenda.length ? '<div class="card-info-row" style="color:var(--gray-text)">Sem reservas hoje</div>' : ''}
+      ${!organizadorAtual ? '<div class="card-info-row" style="color:var(--gray-text)">' + (agenda.length ? 'Livre agora' : 'Sem reservas hoje') + '</div>' : ''}
     </div>
     ${timelineHtml}
     <div class="card-footer">
@@ -636,8 +648,12 @@ function renderTimeline(agenda) {
     // converte inicio_ts e fim_ts para horas decimais no fuso BRT
     const inicioDate = new Date(ev.inicio_ts);
     const fimDate    = new Date(ev.fim_ts);
-    const inicioH = inicioDate.getHours() + inicioDate.getMinutes()/60;
-    const fimH    = fimDate.getHours()   + fimDate.getMinutes()/60;
+    let inicioH = inicioDate.getHours() + inicioDate.getMinutes()/60;
+    let fimH    = fimDate.getHours()   + fimDate.getMinutes()/60;
+
+    // Evento de dia inteiro: inicio e fim são 00:00 — ocupa o dia todo (08-20)
+    const isDiaInteiro = (inicioH === 0 && fimH === 0) || (ev.fim_ts - ev.inicio_ts >= 23 * 3600 * 1000);
+    if (isDiaInteiro) { inicioH = START_H; fimH = END_H; }
 
     // Recorta ao range 08-20
     const top  = Math.max(0, (inicioH - START_H) * PX_PER_H);
