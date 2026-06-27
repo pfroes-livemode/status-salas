@@ -383,44 +383,28 @@ function logout() {
 
 // ─── FETCH STATUS ─────────────────────────────────────────────────────────
 async function fetchAllStatus() {
-  // Dispara uma chamada por sala em paralelo: GET /status-salas?sala=<id>
-  const todasSalas = FLOORS.flatMap(f => f.salas.map(s => s.id));
-
-  const resultados = await Promise.allSettled(
-    todasSalas.map(salaId =>
-      fetch(`${STATUS_URL}?sala=${salaId}`)
-        .then(r => r.json())
-        .then(d => ({ salaId, d }))
-    )
-  );
-
-  // Agrega os resultados no formato { salas: { id: {...} } }
-  const salas = {};
-  for (const r of resultados) {
-    if (r.status === 'fulfilled') {
-      const { salaId, d } = r.value;
-      salas[salaId] = {
-        status:     d.status      || 'livre',
-        organizer:  d.organizador || null,
-        eventTitle: d.summary     || null,
-        endTime:    d.fim         ? formatarHora(d.fim) : null,
-        hasSensor:  d.temSensor   ?? false,
-      };
+  try {
+    const r = await fetch(STATUS_URL);
+    const data = await r.json();
+    // Normaliza campos do workflow para o formato esperado pelo portal
+    if (data.salas) {
+      Object.keys(data.salas).forEach(id => {
+        const s = data.salas[id];
+        s.organizer  = s.organizador || null;
+        s.eventTitle = s.agenda?.[0]?.organizador ? null : null; // título não retornado ainda
+        s.endTime    = s.fim ? formatarHora(s.fim) : null;
+        s.hasSensor  = s.temSensor ?? false;
+      });
     }
+    roomDataCache = data;
+    renderPortal(data);
+    const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('last-update').textContent = 'Atualizado às ' + now;
+  } catch(e) {
+    document.getElementById('last-update').textContent = 'Erro ao atualizar';
   }
-
-  // Cabines ainda sem sensor
-  const cabines = {};
-  FLOORS.forEach(f => f.cabines.forEach(c => {
-    cabines[c.id] = { occupied: false, hasSensor: false };
-  }));
-
-  const data = { salas, cabines };
-  roomDataCache = data;
-  renderPortal(data);
-  const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
-  document.getElementById('last-update').textContent = 'Atualizado às ' + now;
 }
+
 
 function formatarHora(isoString) {
   try {
