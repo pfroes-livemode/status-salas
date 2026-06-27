@@ -150,7 +150,7 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 .card-agenda{padding:0 14px 12px;border-top:1px solid var(--border)}
 .agenda-label{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gray-text);padding:8px 0 6px;opacity:.7}
 .timeline{position:relative;padding-left:36px}
-.timeline-hour{position:relative;height:32px}
+.timeline-hour{position:relative;height:20px}
 .timeline-hour-label{position:absolute;left:-36px;top:-6px;font-size:9px;color:var(--gray-text);width:32px;text-align:right;font-weight:500}
 .timeline-hour-line{position:absolute;left:0;top:0;right:0;height:1px;background:var(--border);opacity:.6}
 .timeline-event{position:absolute;left:2px;right:0;border-radius:4px;padding:2px 6px;display:flex;align-items:center;justify-content:space-between;gap:4px;overflow:hidden;z-index:1}
@@ -286,19 +286,16 @@ const POLL_SENSORES = 5000;   // 5s
 // ─── DEFINIÇÃO DE SALAS ───────────────────────────────────────────────────
 const FLOORS = [
   {
-    andar: '5',
-    nome: 'Quinto Andar',
+    andar: '3',
+    nome: 'Terceiro Andar',
     salas: [
-      { id:'natacao',              nome:'Natação',             cap:4,  calId:'c_18881mr269qv2g5ljdokkr2ccmbso@resource.calendar.google.com', sensor:'binary_sensor.sala_natacao' },
-      { id:'ginastica_artistica',  nome:'Ginástica Artística', cap:4,  calId:'c_188fi7uqkgniojikiie39aqv21id0@resource.calendar.google.com', sensor:'binary_sensor.sala_ginastica_artistica' },
-      { id:'triatlo',              nome:'Triatlo',             cap:4,  calId:'c_188c6isji33e8hn9j1r1hka1bkpi0@resource.calendar.google.com', sensor:'binary_sensor.sala_triatlo' },
-      { id:'handebol',             nome:'Handebol',            cap:4,  calId:'c_188ae5rl4flqah4li2q40djlgp342@resource.calendar.google.com', sensor:'binary_sensor.sala_handebol' },
-      { id:'atletismo',            nome:'Atletismo',           cap:4,  calId:'c_188629uhff274hv8he7v3j0si91be@resource.calendar.google.com', sensor:'binary_sensor.sala_atletismo' },
-      { id:'volei',                nome:'Vôlei',               cap:4,  calId:'c_18898it1nd33khphiicnlngdh1hjo@resource.calendar.google.com', sensor:'binary_sensor.sala_volei' },
+      { id:'futebol',  nome:'Futebol',  cap:5, calId:'c_188ch77eq667gi0gmpm8q84nd7svc@resource.calendar.google.com', sensor:'binary_sensor.sala_futebol' },
+      { id:'basquete', nome:'Basquete', cap:5, calId:'c_188ahgfh7d9soifdgrstga6trco2u@resource.calendar.google.com', sensor:'binary_sensor.sala_basquete' },
     ],
     cabines: [
-      { id:'cabine_canoagem', nome:'Canoagem', sensor:'binary_sensor.cabine_canoagem' },
-      { id:'cabine_futsal',   nome:'Futsal',   sensor:'binary_sensor.cabine_futsal' },
+      { id:'cabine_tenis',    nome:'Tênis',    sensor:'binary_sensor.cabine_tenis' },
+      { id:'cabine_beisebol', nome:'Beisebol', sensor:'binary_sensor.cabine_beisebol' },
+      { id:'cabine_remo',     nome:'Remo',     sensor:'binary_sensor.cabine_remo' },
     ]
   },
   {
@@ -317,16 +314,19 @@ const FLOORS = [
     ]
   },
   {
-    andar: '3',
-    nome: 'Terceiro Andar',
+    andar: '5',
+    nome: 'Quinto Andar',
     salas: [
-      { id:'futebol',  nome:'Futebol',  cap:5, calId:'c_188ch77eq667gi0gmpm8q84nd7svc@resource.calendar.google.com', sensor:'binary_sensor.sala_futebol' },
-      { id:'basquete', nome:'Basquete', cap:5, calId:'c_188ahgfh7d9soifdgrstga6trco2u@resource.calendar.google.com', sensor:'binary_sensor.sala_basquete' },
+      { id:'natacao',              nome:'Natação',             cap:4,  calId:'c_18881mr269qv2g5ljdokkr2ccmbso@resource.calendar.google.com', sensor:'binary_sensor.sala_natacao' },
+      { id:'ginastica_artistica',  nome:'Ginástica Artística', cap:4,  calId:'c_188fi7uqkgniojikiie39aqv21id0@resource.calendar.google.com', sensor:'binary_sensor.sala_ginastica_artistica' },
+      { id:'triatlo',              nome:'Triatlo',             cap:4,  calId:'c_188c6isji33e8hn9j1r1hka1bkpi0@resource.calendar.google.com', sensor:'binary_sensor.sala_triatlo' },
+      { id:'handebol',             nome:'Handebol',            cap:4,  calId:'c_188ae5rl4flqah4li2q40djlgp342@resource.calendar.google.com', sensor:'binary_sensor.sala_handebol' },
+      { id:'atletismo',            nome:'Atletismo',           cap:4,  calId:'c_188629uhff274hv8he7v3j0si91be@resource.calendar.google.com', sensor:'binary_sensor.sala_atletismo' },
+      { id:'volei',                nome:'Vôlei',               cap:4,  calId:'c_18898it1nd33khphiicnlngdh1hjo@resource.calendar.google.com', sensor:'binary_sensor.sala_volei' },
     ],
     cabines: [
-      { id:'cabine_tenis',    nome:'Tênis',    sensor:'binary_sensor.cabine_tenis' },
-      { id:'cabine_beisebol', nome:'Beisebol', sensor:'binary_sensor.cabine_beisebol' },
-      { id:'cabine_remo',     nome:'Remo',     sensor:'binary_sensor.cabine_remo' },
+      { id:'cabine_canoagem', nome:'Canoagem', sensor:'binary_sensor.cabine_canoagem' },
+      { id:'cabine_futsal',   nome:'Futsal',   sensor:'binary_sensor.cabine_futsal' },
     ]
   }
 ];
@@ -629,7 +629,7 @@ function renderTimeline(agenda) {
   const START_H = 8;
   const END_H   = 20;
   const TOTAL_H = END_H - START_H;
-  const PX_PER_H = 32; // altura de cada hora em px
+  const PX_PER_H = 20; // altura de cada hora em px
 
   // Gera as linhas de hora
   let horasHtml = '';
