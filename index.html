@@ -514,7 +514,9 @@ function renderPortal(data) {
     const salaCards = floor.salas.map(sala => {
       const d = salas[sala.id] || {};
       const status = d.status || 'loading';
-      const hasSensor = d.hasSensor !== false;
+      const hasSensor = d.hasSensor === true;
+      // Garante agenda sempre como array
+      if (!Array.isArray(d.agenda)) d.agenda = [];
       if (activeFilter === 'livres' && status !== 'livre') return '';
       return renderRoomCard(sala, d, status, hasSensor);
     }).join('');
@@ -622,7 +624,7 @@ function renderRoomCard(sala, d, status, hasSensor) {
 }
 
 function renderTimeline(agenda) {
-  if (!agenda || agenda.length === 0) return '';
+  // Sempre renderiza a timeline — mesmo sem eventos mostra o grid de horas
 
   const START_H = 8;
   const END_H   = 20;
