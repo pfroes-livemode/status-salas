@@ -254,14 +254,16 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────
 const GOOGLE_CLIENT_ID = '910928019519-b7h5m55v4oucf3oivqto6qr74udopson.apps.googleusercontent.com';
-const N8N_BASE = 'https://n8nops.livemode.com/webhook';
-const STATUS_URL = N8N_BASE + '/status-salas';
+const N8N_BASE      = 'https://n8nops.livemode.com/webhook';
+const CALENDAR_URL  = N8N_BASE + '/status-calendar';
+const SENSORES_URL  = N8N_BASE + '/status-sensores';
 const RESERVA_URL = N8N_BASE + '/reserva-sala';
 const BUSCAR_USUARIOS_URL = N8N_BASE + '/buscar-usuarios-slack';
 const SSO_URL = N8N_BASE + '/validate-google-token';
 const SESSION_KEY = 'livemode_portal_user';
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
-const POLL_INTERVAL = 60000;
+const POLL_CALENDAR = 30000;  // 30s
+const POLL_SENSORES = 5000;   // 5s
 
 // ─── DEFINIÇÃO DE SALAS ───────────────────────────────────────────────────
 const FLOORS = [
@@ -314,6 +316,7 @@ const FLOORS = [
 // ─── AUTH ─────────────────────────────────────────────────────────────────
 let currentUser = null;
 let pollTimer = null;
+let pollTimerSensores = null;
 let activeFilter = 'todos';
 let roomDataCache = {};
 let autocompleteTimer = null;
@@ -368,13 +371,16 @@ function loginSuccess(user) {
   document.getElementById('user-name').textContent = user.name.split(' ')[0];
   document.getElementById('user-avatar').src = user.picture || '';
   renderSkeleton();
-  fetchAllStatus();
-  pollTimer = setInterval(fetchAllStatus, POLL_INTERVAL);
+  fetchCalendar();
+  fetchSensores();
+  pollTimer = setInterval(fetchCalendar, POLL_CALENDAR);
+  pollTimerSensores = setInterval(fetchSensores, POLL_SENSORES);
 }
 
 function logout() {
   localStorage.removeItem(SESSION_KEY);
   clearInterval(pollTimer);
+  clearInterval(pollTimerSensores);
   currentUser = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('portal').style.display = 'none';
@@ -382,26 +388,60 @@ function logout() {
 }
 
 // ─── FETCH STATUS ─────────────────────────────────────────────────────────
-async function fetchAllStatus() {
+// Cache separado: calendar e sensores se mesclam antes de renderizar
+let cacheCalendar = {};
+let cacheSensores = {};
+
+function mesclarEAtualizar() {
+  // Mescla calendar + sensores em um único objeto para o renderPortal
+  const salas = {};
+  const todasSalas = Object.keys({...cacheCalendar.salas, ...cacheSensores.salas});
+  todasSalas.forEach(id => {
+    const cal = cacheCalendar.salas?.[id] || {};
+    const sen = cacheSensores.salas?.[id] || {};
+    salas[id] = {
+      status:     mesclarStatus(cal.status, sen),
+      organizer:  cal.organizador || null,
+      eventTitle: null,
+      endTime:    cal.fim ? formatarHora(cal.fim) : null,
+      hasSensor:  sen.hasSensor ?? false,
+      agenda:     cal.agenda || [],
+      temReserva: cal.temReserva ?? false,
+    };
+  });
+  const data = { salas, cabines: cacheSensores.cabines || {} };
+  roomDataCache = data;
+  renderPortal(data);
+}
+
+function mesclarStatus(calStatus, sensor) {
+  const temReserva  = calStatus === 'reservado';
+  const temPresenca = sensor?.ocupado === true;
+  if (!temReserva && !temPresenca)     return 'livre';
+  if (!temReserva && temPresenca)      return 'sem_reserva_ocupado';
+  if (temReserva  && !temPresenca)     return 'reservado_vazio';
+  return 'reservado_ocupado';
+}
+
+async function fetchCalendar() {
   try {
-    const r = await fetch(STATUS_URL);
-    const data = await r.json();
-    // Normaliza campos do workflow para o formato esperado pelo portal
-    if (data.salas) {
-      Object.keys(data.salas).forEach(id => {
-        const s = data.salas[id];
-        s.organizer  = s.organizador || null;
-        s.eventTitle = s.agenda?.[0]?.organizador ? null : null; // título não retornado ainda
-        s.endTime    = s.fim ? formatarHora(s.fim) : null;
-        s.hasSensor  = s.temSensor ?? false;
-      });
-    }
-    roomDataCache = data;
-    renderPortal(data);
+    const r = await fetch(CALENDAR_URL);
+    cacheCalendar = await r.json();
+    mesclarEAtualizar();
     const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
     document.getElementById('last-update').textContent = 'Atualizado às ' + now;
   } catch(e) {
-    document.getElementById('last-update').textContent = 'Erro ao atualizar';
+    document.getElementById('last-update').textContent = 'Erro ao atualizar calendar';
+  }
+}
+
+async function fetchSensores() {
+  try {
+    const r = await fetch(SENSORES_URL);
+    cacheSensores = await r.json();
+    if (Object.keys(cacheCalendar).length > 0) mesclarEAtualizar();
+  } catch(e) {
+    // Sensores falharam — mantém último estado
   }
 }
 
