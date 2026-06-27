@@ -653,8 +653,10 @@ function renderTimeline(agenda) {
     let inicioH = inicioDate.getHours() + inicioDate.getMinutes()/60;
     let fimH    = fimDate.getHours()   + fimDate.getMinutes()/60;
 
-    // Evento de dia inteiro: inicio e fim são 00:00 — ocupa o dia todo (08-20)
-    const isDiaInteiro = (inicioH === 0 && fimH === 0) || (ev.fim_ts - ev.inicio_ts >= 23 * 3600 * 1000);
+    // Evento de dia inteiro: diaInteiro flag, ou horários 00:00, ou duração >= 20h
+    const isDiaInteiro = ev.diaInteiro === true
+      || (inicioH === 0 && fimH === 0)
+      || (ev.fim_ts && ev.inicio_ts && (ev.fim_ts - ev.inicio_ts) >= 20 * 3600 * 1000);
     if (isDiaInteiro) { inicioH = START_H; fimH = END_H; }
 
     // Recorta ao range 08-20
