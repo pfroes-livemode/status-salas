@@ -274,14 +274,12 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 const GOOGLE_CLIENT_ID = '910928019519-b7h5m55v4oucf3oivqto6qr74udopson.apps.googleusercontent.com';
 const N8N_BASE      = 'https://n8nops.livemode.com/webhook';
 const CALENDAR_URL  = N8N_BASE + '/status-calendar';
-const SENSORES_URL  = N8N_BASE + '/status-sensores';
 const RESERVA_URL = N8N_BASE + '/reserva-sala';
 const BUSCAR_USUARIOS_URL = N8N_BASE + '/buscar-usuarios-slack';
 const SSO_URL = N8N_BASE + '/validate-google-token';
 const SESSION_KEY = 'livemode_portal_user';
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000;
 const POLL_CALENDAR = 30000;  // 30s
-const POLL_SENSORES = 5000;   // 5s
 
 // ─── DEFINIÇÃO DE SALAS ───────────────────────────────────────────────────
 const FLOORS = [
@@ -334,7 +332,6 @@ const FLOORS = [
 // ─── AUTH ─────────────────────────────────────────────────────────────────
 let currentUser = null;
 let pollTimer = null;
-let pollTimerSensores = null;
 let activeFilter = 'todos';
 let roomDataCache = {};
 let autocompleteTimer = null;
@@ -390,15 +387,12 @@ function loginSuccess(user) {
   document.getElementById('user-avatar').src = user.picture || '';
   renderSkeleton();
   fetchCalendar();
-  fetchSensores();
   pollTimer = setInterval(fetchCalendar, POLL_CALENDAR);
-  pollTimerSensores = setInterval(fetchSensores, POLL_SENSORES);
 }
 
 function logout() {
   localStorage.removeItem(SESSION_KEY);
   clearInterval(pollTimer);
-  clearInterval(pollTimerSensores);
   currentUser = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('portal').style.display = 'none';
@@ -406,72 +400,40 @@ function logout() {
 }
 
 // ─── FETCH STATUS ─────────────────────────────────────────────────────────
-// Cache separado: calendar e sensores se mesclam antes de renderizar
-let cacheCalendar = {};
-let cacheSensores = {};
-
-function mesclarEAtualizar() {
-  // Mescla calendar + sensores em um único objeto para o renderPortal
-  const salas = {};
-  const todasSalas = Object.keys({...cacheCalendar.salas, ...cacheSensores.salas});
-  todasSalas.forEach(id => {
-    const cal = cacheCalendar.salas?.[id] || {};
-    const sen = cacheSensores.salas?.[id] || {};
-    // Agenda: garante que todos os itens têm inicio_ts válido
-    const agendaBruta = Array.isArray(cal.agenda) ? cal.agenda : [];
-    const agenda = agendaBruta.filter(ev => ev && (ev.inicio_ts || ev.inicio));
-    // Normaliza inicio_ts/fim_ts se vierem como strings de hora (HH:MM)
-    const agendaNorm = agenda.map(ev => {
-      if (!ev.inicio_ts && ev.inicio) {
-        // Reconstrói timestamp a partir de hora HH:MM de hoje
-        const hoje = new Date().toLocaleDateString('en-CA');
-        ev.inicio_ts = new Date(hoje + 'T' + ev.inicio + ':00-03:00').getTime();
-        ev.fim_ts    = new Date(hoje + 'T' + ev.fim    + ':00-03:00').getTime();
-      }
-      return ev;
-    });
-    salas[id] = {
-      status:     mesclarStatus(cal.status, sen),
-      organizer:  cal.organizador || null,
-      endTime:    cal.fim ? formatarHora(cal.fim) : null,
-      hasSensor:  sen.hasSensor ?? false,
-      agenda:     agendaNorm,
-      temReserva: cal.temReserva ?? false,
-    };
-  });
-  const data = { salas, cabines: cacheSensores.cabines || {} };
-  roomDataCache = data;
-  renderPortal(data);
-}
-
-function mesclarStatus(calStatus, sensor) {
-  const temReserva  = calStatus === 'reservado';
-  const temPresenca = sensor?.ocupado === true;
-  if (!temReserva && !temPresenca)     return 'livre';
-  if (!temReserva && temPresenca)      return 'sem_reserva_ocupado';
-  if (temReserva  && !temPresenca)     return 'reservado_vazio';
-  return 'reservado_ocupado';
-}
-
 async function fetchCalendar() {
   try {
     const r = await fetch(CALENDAR_URL);
-    cacheCalendar = await r.json();
-    mesclarEAtualizar();
+    const data = await r.json();
+
+    // Monta salas a partir do calendar — sem sensores por enquanto
+    const salas = {};
+    Object.entries(data.salas || {}).forEach(([id, cal]) => {
+      const agendaBruta = Array.isArray(cal.agenda) ? cal.agenda : [];
+      const agenda = agendaBruta.filter(ev => ev && (ev.inicio_ts || ev.inicio));
+      const agendaNorm = agenda.map(ev => {
+        if (!ev.inicio_ts && ev.inicio) {
+          const hoje = new Date().toLocaleDateString('en-CA');
+          ev.inicio_ts = new Date(hoje + 'T' + ev.inicio + ':00-03:00').getTime();
+          ev.fim_ts    = new Date(hoje + 'T' + ev.fim    + ':00-03:00').getTime();
+        }
+        return ev;
+      });
+      salas[id] = {
+        status:    cal.status || 'livre',
+        organizer: cal.organizador || null,
+        endTime:   cal.fim || null,
+        hasSensor: false, // será preenchido quando o fluxo de sensores for criado
+        agenda:    agendaNorm,
+        temReserva: cal.temReserva ?? false,
+      };
+    });
+
+    roomDataCache = { salas, cabines: {} };
+    renderPortal(roomDataCache);
     const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
     document.getElementById('last-update').textContent = 'Atualizado às ' + now;
   } catch(e) {
     document.getElementById('last-update').textContent = 'Erro ao atualizar calendar';
-  }
-}
-
-async function fetchSensores() {
-  try {
-    const r = await fetch(SENSORES_URL);
-    cacheSensores = await r.json();
-    if (Object.keys(cacheCalendar).length > 0) mesclarEAtualizar();
-  } catch(e) {
-    // Sensores falharam — mantém último estado
   }
 }
 
@@ -803,7 +765,7 @@ async function confirmarReserva() {
       msg.className='msg msg-error'; msg.textContent = d.mensagem || 'Conflito de horário.'; msg.style.display='block';
     } else {
       msg.className='msg msg-success'; msg.textContent='✓ Reserva criada!'; msg.style.display='block';
-      setTimeout(()=>{ fecharModal(); fetchAllStatus(); }, 1800);
+      setTimeout(()=>{ fecharModal(); fetchCalendar(); }, 1800);
     }
   } catch(e) {
     msg.className='msg msg-error'; msg.textContent='Erro ao criar reserva.'; msg.style.display='block';
