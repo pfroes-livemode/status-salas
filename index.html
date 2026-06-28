@@ -150,10 +150,10 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 .card-agenda{padding:0 14px 12px;border-top:1px solid var(--border)}
 .agenda-label{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gray-text);padding:8px 0 6px;opacity:.7}
 .timeline{position:relative;padding-left:36px}
-.timeline-hour{position:relative;height:20px}
+.timeline-hour{position:relative;height:20px;z-index:2}
 .timeline-hour-label{position:absolute;left:-36px;top:-6px;font-size:9px;color:var(--gray-text);width:32px;text-align:right;font-weight:500}
 .timeline-hour-line{position:absolute;left:0;top:0;right:0;height:1px;background:var(--border);opacity:.6}
-.timeline-event{position:absolute;left:2px;right:0;border-radius:4px;padding:2px 6px;display:flex;align-items:center;justify-content:space-between;gap:4px;overflow:hidden;z-index:1}
+.timeline-event{position:absolute;left:2px;right:0;border-radius:4px;padding:2px 6px;display:flex;align-items:center;justify-content:space-between;gap:4px;overflow:hidden;z-index:1;opacity:0.88}
 .timeline-event-name{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
 .timeline-event-time{font-size:9px;font-weight:500;white-space:nowrap;opacity:.85}
 .event-color-0{background:#FEF3C7;color:#92400E;border-left:3px solid #F59E0B}
@@ -466,58 +466,93 @@ function renderSkeleton() {
     </div>`).join('');
 }
 
+function renderFloorSection(floor, salas, cabines) {
+  const show = activeFilter === 'todos' || activeFilter === floor.andar;
+  if (!show && activeFilter !== 'livres') return '';
+
+  const salaCards = floor.salas.map(sala => {
+    const d = salas[sala.id] || {};
+    const status = d.status || 'loading';
+    const hasSensor = d.hasSensor === true;
+    if (!Array.isArray(d.agenda)) d.agenda = [];
+    if (activeFilter === 'livres' && status !== 'livre') return '';
+    return renderRoomCard(sala, d, status, hasSensor);
+  }).join('');
+
+  const cabineCards = floor.cabines.map(cab => {
+    const d = cabines[cab.id] || {};
+    const occupied = d.occupied;
+    if (activeFilter === 'livres' && occupied) return '';
+    return renderCabineCard(cab, d);
+  }).join('');
+
+  const visibleSalas = floor.salas.filter(s => {
+    if (activeFilter === 'livres') { const d = salas[s.id] || {}; return d.status === 'livre'; }
+    return true;
+  }).length;
+  const visibleCabines = floor.cabines.filter(c => {
+    if (activeFilter === 'livres') { const d = cabines[c.id] || {}; return !d.occupied; }
+    return true;
+  }).length;
+
+  if (activeFilter === 'livres' && visibleSalas === 0 && visibleCabines === 0) return '';
+
+  return `<div class="floor-section" data-floor="${floor.andar}">
+    <div class="floor-header">
+      <div>
+        <div class="floor-label">Andar</div>
+        <div class="floor-name">${floor.nome}</div>
+      </div>
+      <div class="floor-divider"></div>
+      <div class="floor-count">${visibleSalas} sala${visibleSalas!==1?'s':''} · ${visibleCabines} cabine${visibleCabines!==1?'s':''}</div>
+    </div>
+    ${salaCards ? `<div class="rooms-label">Salas de Reunião</div><div class="rooms-grid">${salaCards}</div>` : ''}
+    ${cabineCards ? `<div class="rooms-label" style="margin-top:${salaCards?'12px':'0'}">Cabines de Call</div><div class="cabines-grid">${cabineCards}</div>` : ''}
+  </div>`;
+}
+
 function renderPortal(data) {
   const main = document.getElementById('main-content');
   const salas = data.salas || {};
   const cabines = data.cabines || {};
 
-  const floorsSections = FLOORS.map(floor => {
-    const show = activeFilter === 'todos' || activeFilter === floor.andar;
-    if (!show && activeFilter !== 'livres') return '';
+  // 3º e 4º andar lado a lado, 5º andar embaixo
+  const floor3 = FLOORS.find(f => f.andar === '3');
+  const floor4 = FLOORS.find(f => f.andar === '4');
+  const floor5 = FLOORS.find(f => f.andar === '5');
 
-    const salaCards = floor.salas.map(sala => {
-      const d = salas[sala.id] || {};
-      const status = d.status || 'loading';
-      const hasSensor = d.hasSensor === true;
-      // Garante agenda sempre como array
-      if (!Array.isArray(d.agenda)) d.agenda = [];
-      if (activeFilter === 'livres' && status !== 'livre') return '';
-      return renderRoomCard(sala, d, status, hasSensor);
-    }).join('');
+  const html3 = floor3 ? renderFloorSection(floor3, salas, cabines) : '';
+  const html4 = floor4 ? renderFloorSection(floor4, salas, cabines) : '';
+  const html5 = floor5 ? renderFloorSection(floor5, salas, cabines) : '';
 
-    const cabineCards = floor.cabines.map(cab => {
-      const d = cabines[cab.id] || {};
-      const occupied = d.occupied;
-      if (activeFilter === 'livres' && occupied) return '';
-      return renderCabineCard(cab, d);
-    }).join('');
+  const showSideBySide = activeFilter === 'todos' || activeFilter === '3' || activeFilter === '4';
+  const show5 = activeFilter === 'todos' || activeFilter === '5' || activeFilter === 'livres';
 
-    const visibleSalas = floor.salas.filter(s => {
-      if (activeFilter === 'livres') { const d = salas[s.id] || {}; return d.status === 'livre'; }
-      return true;
-    }).length;
-    const visibleCabines = floor.cabines.filter(c => {
-      if (activeFilter === 'livres') { const d = cabines[c.id] || {}; return !d.occupied; }
-      return true;
-    }).length;
+  let html = '';
 
-    if (activeFilter === 'livres' && visibleSalas === 0 && visibleCabines === 0) return '';
+  if (showSideBySide && (html3 || html4)) {
+    if (activeFilter === '3' || activeFilter === '4') {
+      // Filtro de andar específico — só mostra o relevante
+      html += html3 + html4;
+    } else {
+      // Lado a lado com divisor
+      html += `<div style="display:grid;grid-template-columns:1fr 1px 1fr;gap:0 24px;margin-bottom:36px;align-items:start">
+        <div>${html3}</div>
+        <div style="background:var(--border);align-self:stretch"></div>
+        <div>${html4}</div>
+      </div>`;
+    }
+  }
 
-    return `<div class="floor-section" data-floor="${floor.andar}">
-      <div class="floor-header">
-        <div>
-          <div class="floor-label">Andar</div>
-          <div class="floor-name">${floor.nome}</div>
-        </div>
-        <div class="floor-divider"></div>
-        <div class="floor-count">${visibleSalas} sala${visibleSalas!==1?'s':''} · ${visibleCabines} cabine${visibleCabines!==1?'s':''}</div>
-      </div>
-      ${salaCards ? `<div class="rooms-label">Salas de Reunião</div><div class="rooms-grid">${salaCards}</div>` : ''}
-      ${cabineCards ? `<div class="rooms-label" style="margin-top:${salaCards?'12px':'0'}">Cabines de Call</div><div class="cabines-grid">${cabineCards}</div>` : ''}
-    </div>`;
-  }).join('');
+  if (show5 && html5) {
+    html += html5;
+  }
 
-  main.innerHTML = floorsSections || '<div style="text-align:center;color:var(--gray-text);padding:60px 0;font-size:14px">Nenhum espaço disponível no momento.</div>';
+  if (activeFilter === 'livres') {
+    html = (html3 + html4 + html5) || '';
+  }
+
+  main.innerHTML = html || '<div style="text-align:center;color:var(--gray-text);padding:60px 0;font-size:14px">Nenhum espaço disponível no momento.</div>';
 }
 
 function badgeClass(status) {
