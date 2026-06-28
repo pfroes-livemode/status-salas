@@ -150,9 +150,9 @@ body{background:var(--cream);font-family:'Inter',sans-serif;color:var(--ink);min
 .card-agenda{padding:0 14px 12px;border-top:1px solid var(--border)}
 .agenda-label{font-size:9px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gray-text);padding:8px 0 6px;opacity:.7}
 .timeline{position:relative;padding-left:36px}
-.timeline-hour{position:relative;height:20px;z-index:2}
+.timeline-hour{position:relative;height:20px;background:transparent}
 .timeline-hour-label{position:absolute;left:-36px;top:-6px;font-size:9px;color:var(--gray-text);width:32px;text-align:right;font-weight:500}
-.timeline-hour-line{position:absolute;left:0;top:0;right:0;height:1px;background:var(--border);opacity:.6}
+.timeline-hour-line{position:absolute;left:0;top:0;right:0;height:1px;background:var(--border);opacity:.8}
 .timeline-event{position:absolute;left:2px;right:0;border-radius:4px;padding:2px 6px;display:flex;align-items:center;justify-content:space-between;gap:4px;overflow:hidden;z-index:1;opacity:0.88}
 .timeline-event-name{font-size:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
 .timeline-event-time{font-size:9px;font-weight:500;white-space:nowrap;opacity:.85}
@@ -679,8 +679,8 @@ function renderTimeline(agenda) {
   return `<div class="card-agenda">
     <div class="agenda-label">Agenda do Dia</div>
     <div class="timeline" style="height:${TOTAL_H * PX_PER_H}px;position:relative">
-      ${horasHtml}
-      <div style="position:absolute;inset:0;pointer-events:none">${eventosHtml}</div>
+      <div style="position:absolute;inset:0;pointer-events:none;z-index:0">${eventosHtml}</div>
+      <div style="position:relative;z-index:2">${horasHtml}</div>
     </div>
   </div>`;
 }
