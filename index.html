@@ -634,8 +634,8 @@ function renderTimeline(agenda) {
   for (let h = START_H; h <= END_H; h++) {
     const top = (h - START_H) * PX_PER_H;
     horasHtml += `
-      <div style="position:absolute;top:${top}px;left:0;right:0;height:1px;background:var(--border);opacity:0.7"></div>
-      <span style="position:absolute;top:${top - 6}px;left:0;width:32px;text-align:right;font-size:9px;color:var(--gray-text);font-weight:500;line-height:1">${h}:00</span>`;
+      <div style="position:absolute;top:${top}px;left:36px;right:0;height:1px;background:var(--border);opacity:0.7"></div>
+      <span style="position:absolute;top:${top - 6}px;left:0;width:34px;text-align:right;font-size:9px;color:var(--gray-text);font-weight:500;line-height:1">${h}:00</span>`;
   }
 
   // ── Blocos de evento ──
@@ -677,9 +677,9 @@ function renderTimeline(agenda) {
 
   return `<div class="card-agenda">
     <div class="agenda-label">Agenda do Dia</div>
-    <div style="position:relative;height:${totalPx}px;padding-left:36px;margin-top:4px">
+    <div style="position:relative;height:${totalPx}px;margin-top:4px">
       ${eventosHtml}
-      <div style="position:absolute;inset:0;padding-left:36px;pointer-events:none">
+      <div style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none">
         ${horasHtml}
       </div>
     </div>
