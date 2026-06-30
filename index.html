@@ -797,7 +797,7 @@ async function confirmarReserva() {
     const inicioISO = `${today}T${inicio}:00-03:00`;
     const fimISO    = `${today}T${fim}:00-03:00`;
     const r = await fetch(RESERVA_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'text/plain'},
       body: JSON.stringify({
         salaId: currentModalRoom.id,
         salaNome: currentModalRoom.nome,
