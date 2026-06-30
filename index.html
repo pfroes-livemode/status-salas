@@ -793,14 +793,19 @@ async function confirmarReserva() {
 
   btn.textContent='Aguarde...'; btn.disabled=true;
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD no fuso local
+    const inicioISO = `${today}T${inicio}:00-03:00`;
+    const fimISO    = `${today}T${fim}:00-03:00`;
     const r = await fetch(RESERVA_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         salaId: currentModalRoom.id,
         salaNome: currentModalRoom.nome,
-        organizer: email,
-        titulo, inicio, fim, data: today
+        organizador: nome,
+        email,
+        titulo,
+        inicio: inicioISO,
+        fim: fimISO
       })
     });
     const d = await r.json();
