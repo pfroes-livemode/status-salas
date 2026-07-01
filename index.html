@@ -278,7 +278,7 @@ body{background:var(--cream);font-family:'Poppins',sans-serif;color:var(--ink);m
 // ─── CONFIG ───────────────────────────────────────────────────────────────
 const GOOGLE_CLIENT_ID = '910928019519-b7h5m55v4oucf3oivqto6qr74udopson.apps.googleusercontent.com';
 const N8N_BASE      = 'https://n8nops.livemode.com/webhook';
-const CALENDAR_URL  = N8N_BASE + '/status-calendar';
+const CALENDAR_URL  = 'https://raw.githubusercontent.com/pfroes-livemode/status-salas/main/status-salas.json';
 const RESERVA_URL = N8N_BASE + '/reserva-sala';
 const BUSCAR_USUARIOS_URL = N8N_BASE + '/buscar-usuarios-slack';
 const SSO_URL = N8N_BASE + '/validate-google-token';
@@ -407,7 +407,7 @@ function logout() {
 // ─── FETCH STATUS ─────────────────────────────────────────────────────────
 async function fetchCalendar() {
   try {
-    const r = await fetch(CALENDAR_URL);
+    const r = await fetch(CALENDAR_URL, { cache: 'no-store' });
     const text = await r.text();
     const clean = text.startsWith('=') ? text.slice(1) : text;
     const data = JSON.parse(clean);
