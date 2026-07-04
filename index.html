@@ -563,6 +563,7 @@ function renderPortal(data) {
 function badgeClass(status) {
   return {
     'livre':               'badge-livre',
+    'reservado':           'badge-reservado-vazio',
     'reservado_vazio':     'badge-reservado-vazio',
     'sem_reserva_ocupado': 'badge-sem-reserva-ocupado',
     'reservado_ocupado':   'badge-reservado-ocupado',
@@ -573,6 +574,7 @@ function badgeClass(status) {
 function badgeLabel(status) {
   return {
     'livre':               '● Disponível',
+    'reservado':           '● Reservado',
     'reservado_vazio':     '● Reservado · Vazio',
     'sem_reserva_ocupado': '● Ocupado sem reserva',
     'reservado_ocupado':   '● Em uso',
