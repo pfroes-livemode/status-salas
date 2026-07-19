@@ -279,6 +279,7 @@ body{background:var(--cream);font-family:'Poppins',sans-serif;color:var(--ink);m
 const GOOGLE_CLIENT_ID = '910928019519-b7h5m55v4oucf3oivqto6qr74udopson.apps.googleusercontent.com';
 const N8N_BASE      = 'https://n8nops.livemode.com/webhook';
 const CALENDAR_URL  = 'https://raw.githubusercontent.com/pfroes-livemode/salas-data/main/status-salas.json';
+const SENSORES_URL = N8N_BASE + '/status-sensores';
 const RESERVA_URL = N8N_BASE + '/reserva-sala';
 const BUSCAR_USUARIOS_URL = N8N_BASE + '/buscar-usuarios-slack';
 const SSO_URL = N8N_BASE + '/validate-google-token';
@@ -405,12 +406,26 @@ function logout() {
 }
 
 // ─── FETCH STATUS ─────────────────────────────────────────────────────────
+async function fetchSensores() {
+  try {
+    const r = await fetch(SENSORES_URL, { cache: 'no-store' });
+    return await r.json();
+  } catch(e) {
+    console.error('fetchSensores error:', e);
+    return { salas: {}, cabines: {} };
+  }
+}
+
 async function fetchCalendar() {
   try {
-    const r = await fetch(CALENDAR_URL, { cache: 'no-store' });
-    const text = await r.text();
-    const clean = text.startsWith('=') ? text.slice(1) : text;
+    const [calText, sensorData] = await Promise.all([
+      fetch(CALENDAR_URL, { cache: 'no-store' }).then(r => r.text()),
+      fetchSensores()
+    ]);
+    const clean = calText.startsWith('=') ? calText.slice(1) : calText;
     const data = JSON.parse(clean);
+    const sensorSalas   = sensorData.salas || {};
+    const sensorCabines = sensorData.cabines || {};
 
     const salas = {};
     Object.entries(data.salas || {}).forEach(([id, cal]) => {
@@ -424,17 +439,39 @@ async function fetchCalendar() {
         }
         return ev;
       });
+
+      // Cruza reserva (calendário) com presença real (sensor), quando existir
+      const sensorInfo = sensorSalas[id] || {};
+      const hasSensor  = sensorInfo.hasSensor === true;
+      const ocupado    = sensorInfo.ocupado === true;
+      const reservado  = cal.status === 'reservado';
+
+      let status;
+      if (hasSensor) {
+        status = reservado
+          ? (ocupado ? 'reservado_ocupado' : 'reservado_vazio')
+          : (ocupado ? 'sem_reserva_ocupado' : 'livre');
+      } else {
+        // Sem sensor: mantém o comportamento anterior baseado só na reserva
+        status = reservado ? 'reservado_vazio' : 'livre';
+      }
+
       salas[id] = {
-        status:    cal.status || 'livre',
+        status,
         organizer: cal.organizador || null,
         endTime:   cal.fim || null,
-        hasSensor: false,
+        hasSensor,
         agenda:    agendaNorm,
         temReserva: cal.temReserva ?? false,
       };
     });
 
-    roomDataCache = { salas, cabines: {} };
+    const cabines = {};
+    Object.entries(sensorCabines).forEach(([id, c]) => {
+      cabines[id] = { occupied: c.occupied === true, hasSensor: c.hasSensor === true };
+    });
+
+    roomDataCache = { salas, cabines };
     renderPortal(roomDataCache);
     const now = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
     document.getElementById('last-update').textContent = 'Atualizado às ' + now;
@@ -563,7 +600,6 @@ function renderPortal(data) {
 function badgeClass(status) {
   return {
     'livre':               'badge-livre',
-    'reservado':           'badge-reservado-vazio',
     'reservado_vazio':     'badge-reservado-vazio',
     'sem_reserva_ocupado': 'badge-sem-reserva-ocupado',
     'reservado_ocupado':   'badge-reservado-ocupado',
@@ -574,7 +610,6 @@ function badgeClass(status) {
 function badgeLabel(status) {
   return {
     'livre':               '● Disponível',
-    'reservado':           '● Reservado',
     'reservado_vazio':     '● Reservado · Vazio',
     'sem_reserva_ocupado': '● Ocupado sem reserva',
     'reservado_ocupado':   '● Em uso',
@@ -694,8 +729,8 @@ function renderTimeline(agenda) {
 }
 
 function renderCabineCard(cab, d) {
-  const occupied = d.occupied;
-  const hasSensor = d.hasSensor !== false;
+  const occupied = d.occupied === true;
+  const hasSensor = d.hasSensor === true;
 
   let dotClass = 'dot-sem-sensor';
   let label = 'Sensor pendente';
