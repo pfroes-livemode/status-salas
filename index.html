@@ -19,7 +19,7 @@
   --ink-03:rgba(28,28,28,0.03);
   --muted:#5f5f5d;
   --border:#eceae4;
-  --card-bg:#f7f4ed;
+  --card-bg:#ffffff;
   --ring:rgba(59,130,246,0.5);
   --shadow-inset:rgba(255,255,255,0.2) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.2) 0px 0px 0px 0.5px inset, rgba(0,0,0,0.05) 0px 1px 2px 0px;
   --shadow-focus:rgba(0,0,0,0.1) 0px 4px 12px;
@@ -683,6 +683,17 @@ function renderTimeline(agenda) {
     </div>`;
   });
 
+  // ── Linha do horário atual (estilo Google Calendar) ──
+  let nowLineHtml = '';
+  const agoraSP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const nowH = agoraSP.getHours() + agoraSP.getMinutes() / 60;
+  if (nowH >= START_H && nowH <= END_H) {
+    const topNow = (nowH - START_H) * PX_PER_H;
+    nowLineHtml = `
+      <div style="position:absolute;left:36px;right:0;top:${topNow}px;height:2px;background:#EF4444;z-index:5;pointer-events:none"></div>
+      <div style="position:absolute;left:32px;top:${topNow - 4}px;width:8px;height:8px;border-radius:50%;background:#EF4444;z-index:5;pointer-events:none"></div>`;
+  }
+
   return `<div class="card-agenda">
     <div class="agenda-label">Agenda do Dia</div>
     <div style="position:relative;height:${totalPx}px;margin-top:4px">
@@ -690,6 +701,7 @@ function renderTimeline(agenda) {
       <div style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none">
         ${horasHtml}
       </div>
+      ${nowLineHtml}
     </div>
   </div>`;
 }
